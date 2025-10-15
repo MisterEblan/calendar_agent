@@ -1,0 +1,6 @@
+ollama:
+  model: qwen3:4b
+  num_thread: 16
+  temperature: 0.1
+  reasoning: False
+  num_ctx: 10000

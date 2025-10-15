@@ -1,25 +1,24 @@
-from langchain_google_community import CalendarToolkit
-from langchain_google_community.calendar.utils import (
-    get_google_credentials,
-    build_calendar_service
-)
+import asyncio
 
-credentials = get_google_credentials(
-    token_file="token.json",
-    scopes=["https://www.googleapis.com/auth/calendar"],
-    client_secrets_file="credentials.json",
-)
+from src.tools import api_resource
+from langchain.prompts import PromptTemplate
+from langchain_google_community import CalendarSearchEvents, GetCalendarsInfo
+from src.chat_agent import agent_executor
+from src.tools import tools_descriptions
+from src.prompts import react_prompt_str
 
-api_resource = build_calendar_service(credentials)
-toolkit = CalendarToolkit(api_resource=api_resource)
+# query = input("Вопрос >>> ")
+query = "Привет! Какие у меня мероприятия будут дальше на сегодняшний день?"
+print(query)
+async def main():
+    stream = agent_executor.astream_events({
+        "input": query,
+        "tools": "\n".join(tools_descriptions)
+    },)
 
-tools = toolkit.get_tools()
+    async for event in stream:
+        if event["event"] == "on_chat_model_stream":
+            print(event["data"]["chunk"].content, flush=True, end="")
 
-info = tools[3].invoke({})
-result = tools[1].invoke(input={
-    "calendars_info": info,
-    "min_datetime": "2025-10-13 00:00:00",
-    "max_datetime": "2025-10-15 00:00:00"
-})
-
-print(result)
+if __name__ == "__main__":
+    asyncio.run(main())
