@@ -15,7 +15,7 @@ warnings.filterwarnings("ignore", category=LangChainDeprecationWarning)
 
 memory = ConversationBufferWindowMemory(
     memory_key="chat_history",
-    output_key="messages",
+    output_key="output",
     return_messages=True,
     k=5
 )

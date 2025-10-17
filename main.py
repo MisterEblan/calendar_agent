@@ -41,7 +41,7 @@ async def main():
     )
     try:
         while True:
-            query = Prompt.ask("[cyan]Ввод[/cyan]")
+            query = Prompt.ask("\n[cyan]Ввод[/cyan]")
 
             async for event in tool_agent_executor.astream_events({
                 "input": query
