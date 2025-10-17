@@ -1,18 +1,19 @@
 [project]
 name = "calendar-agent"
 version = "0.1.0"
-description = "Add your description here"
+description = "Агент для работы с календарём Google."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "colorama>=0.4.6",
     "google-auth-oauthlib>=1.2.2",
     "langchain-google-community>=2.0.10",
     "langchain-ollama>=0.3.10",
     "langgraph>=0.6.10",
+    "rich>=14.2.0",
 ]
 
 [dependency-groups]
 dev = [
     "pylint>=4.0.1",
+    "ruff>=0.14.1",
 ]
