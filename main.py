@@ -48,6 +48,7 @@ async def main():
             async for event in tool_agent_executor.astream_events({
                 "input": query
             }):
+                pretty_print(event)
 
     except (KeyboardInterrupt, EOFError):
         print("\nПока!")
