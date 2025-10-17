@@ -1,27 +1,10 @@
-import json
-from langchain_google_community import CalendarToolkit
+"""Модуль с инструментами для агентов"""
+
+from langchain_google_community import CalendarToolkit, GetCurrentDatetime
 from langchain_google_community.calendar.utils import (
     get_google_credentials,
     build_calendar_service
 )
-
-weekday_mapping = {
-    0: "Понедельник",
-    1: "Вторник",
-    2: "Среда",
-    3: "Четверг",
-    4: "Пятница",
-    5: "Суббота",
-    6: "Воскресенье"
-}
-
-# def get_today() -> str:
-#     """Возвращает сегодняшнюю дату в виде строки
-#
-#     Returns:
-#         str: строка вида `%Y-%m-%d %H:%M:%S`"""
-#     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
 
 credentials = get_google_credentials(
     token_file="token.json",
@@ -37,11 +20,9 @@ toolkit = CalendarToolkit(api_resource=api_resource)
 
 tools = toolkit.get_tools()
 
-for t in tools:
-    name = t.name
-    description = t.description
-    args = t.args
-
 tools_descriptions = [
     f"{t.name}: {t.description}" for t in tools
 ]
+tools_names = ", ".join(t.name for t in tools)
+
+get_current_datetime = GetCurrentDatetime(api_resource=api_resource)

@@ -1,6 +1,6 @@
 ollama:
-  model: qwen3:4b
+  model: gpt-oss:20b-cloud
   num_thread: 16
   temperature: 0.1
-  reasoning: False
+  reasoning: false
   num_ctx: 10000

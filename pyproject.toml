@@ -5,7 +5,14 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
+    "colorama>=0.4.6",
     "google-auth-oauthlib>=1.2.2",
     "langchain-google-community>=2.0.10",
     "langchain-ollama>=0.3.10",
+    "langgraph>=0.6.10",
+]
+
+[dependency-groups]
+dev = [
+    "pylint>=4.0.1",
 ]
