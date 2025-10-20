@@ -24,6 +24,7 @@ def pretty_print(event: StreamEvent) -> None:
         print(event["data"]["chunk"].content, flush=True, end="")
 
     elif event["event"] == "on_tool_start":
+        print(event["data"])
         name = event.get("name", "")
         msg = f"\n[magenta]=== Вызываю {name} ===[/magenta]"
         console.print(msg)

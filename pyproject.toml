@@ -5,15 +5,21 @@ description = "Агент для работы с календарём Google."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
+    "aiosqlite>=0.21.0",
     "google-auth-oauthlib>=1.2.2",
+    "greenlet>=3.2.4",
     "langchain-google-community>=2.0.10",
     "langchain-ollama>=0.3.10",
     "langgraph>=0.6.10",
+    "pydantic-settings>=2.11.0",
     "rich>=14.2.0",
+    "sqlalchemy>=2.0.44",
 ]
 
 [dependency-groups]
 dev = [
     "pylint>=4.0.1",
+    "pytest>=8.4.2",
+    "pytest-asyncio>=1.2.0",
     "ruff>=0.14.1",
 ]
