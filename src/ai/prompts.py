@@ -1,7 +1,7 @@
 """Модуль с промптами для моделей"""
 
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
-from .config.config import prompts
+from ..config import prompts
 from .tools import (
         tools_descriptions,
         tools_names,

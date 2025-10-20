@@ -6,6 +6,8 @@ from langchain_google_community.calendar.utils import (
     build_calendar_service
 )
 
+from .db_tools import db_tools
+
 credentials = get_google_credentials(
     token_file="token.json",
     scopes=[
@@ -18,7 +20,10 @@ credentials = get_google_credentials(
 api_resource = build_calendar_service(credentials)
 toolkit = CalendarToolkit(api_resource=api_resource)
 
-tools = toolkit.get_tools()
+# === Database Tools ===
+
+
+tools = toolkit.get_tools() + db_tools
 
 tools_descriptions = [
     f"{t.name}: {t.description}" for t in tools

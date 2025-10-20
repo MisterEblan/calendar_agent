@@ -10,6 +10,7 @@ from .models import (
     Subject,
     SubjectCriticality
 )
+from .engine import engine, init_db
 
 __all__ = [
     "DatabaseException",
@@ -20,4 +21,6 @@ __all__ = [
     "SqliteService",
     "Subject",
     "SubjectCriticality",
+    "engine",
+    "init_db"
 ]

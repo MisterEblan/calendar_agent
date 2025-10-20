@@ -100,7 +100,7 @@ class SqliteService:
         Returns:
             только создаёт запись в БД."""
 
-        if skips <= 0:
+        if skips < 0:
             raise InvalidCount(
                 "Количество пропусков должно быть положительным числом"
             )

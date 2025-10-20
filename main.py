@@ -7,7 +7,8 @@ from langchain_core.runnables.schema import StreamEvent
 from rich.console import Console
 from rich.prompt import Prompt
 
-from src.agents import tool_agent_executor
+from src.ai import tool_agent_executor
+from src.db import init_db
 
 console = Console()
 
@@ -34,6 +35,7 @@ def pretty_print(event: StreamEvent) -> None:
         console.print(msg)
 
 async def main():
+    await init_db()
     console.print(
         "[bold green]Помощник по расписанию[/bold green]"
     )

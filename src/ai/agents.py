@@ -8,7 +8,7 @@ from langchain_ollama import ChatOllama
 
 from .prompts import react_prompt, default_prompt
 from .tools import tools
-from .config.config import models_params
+from ..config import models_params
 import warnings
 
 warnings.filterwarnings("ignore", category=LangChainDeprecationWarning)
