@@ -1,5 +1,6 @@
 """Модуль с инструментами для агентов"""
 
+from google.auth.transport.requests import Request
 from langchain_google_community import CalendarToolkit, GetCurrentDatetime
 from langchain_google_community.calendar.utils import (
     get_google_credentials,
@@ -16,6 +17,12 @@ credentials = get_google_credentials(
     ],
     client_secrets_file="credentials.json",
 )
+
+if credentials.expired and credentials.refresh_token:
+    credentials.refresh(Request())
+
+    with open("token.json", "w") as token:
+        token.write(credentials.to_json())
 
 api_resource = build_calendar_service(credentials)
 toolkit = CalendarToolkit(api_resource=api_resource)

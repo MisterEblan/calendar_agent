@@ -1,61 +1,30 @@
-"""Точка входа"""
+from aiogram import Bot
+from aiogram.client.default import DefaultBotProperties
+from aiogram.enums import ParseMode
+
+from src.api.handlers import dp
+from src.config import app_config
+from src.db.engine import init_db
 
 import asyncio
+import logging
 
-from langchain_core.runnables.schema import StreamEvent
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)-20s | %(levelname)-7s| %(name)-20s :: %(message)s"
+)
 
-from rich.console import Console
-from rich.prompt import Prompt
+logger = logging.getLogger(__name__)
 
-from src.ai import tool_agent_executor
-from src.db import init_db
-
-console = Console()
-
-def pretty_print(event: StreamEvent) -> None:
-    """Печатает событие из стрима
-
-    Args:
-        event: само событие.
-
-    Returns:
-        ничего не возвращает.
-    """
-    if event["event"] == "on_chat_model_stream":
-        print(event["data"]["chunk"].content, flush=True, end="")
-
-    elif event["event"] == "on_tool_start":
-        print(event["data"])
-        name = event.get("name", "")
-        msg = f"\n[magenta]=== Вызываю {name} ===[/magenta]"
-        console.print(msg)
-    elif event["event"] == "on_tool_end":
-        name = event.get("name", "")
-        msg = f"\n[green]=== Вызов {name} завершён ===[/green]"
-        console.print(msg)
-
-async def main():
+async def main() -> None:
     await init_db()
-    console.print(
-        "[bold green]Помощник по расписанию[/bold green]"
+    bot = Bot(
+        token=app_config.telegram_bot_token,
+        default=DefaultBotProperties(parse_mode=ParseMode.MARKDOWN)
     )
-    console.print(
-        "Нажмите Ctrl+C или Ctrl+D, чтобы выйти."
-    )
-    try:
-        while True:
-            query = Prompt.ask("\n[cyan]Ввод[/cyan]")
 
-            async for event in tool_agent_executor.astream_events({
-                "input": query
-            }):
-                pretty_print(event)
-
-    except (KeyboardInterrupt, EOFError):
-        console.print("\nПока!")
+    await dp.start_polling(bot)
 
 if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except Exception as err:
-        console.print(f"\n[bold red]Ошибка: {err}[/bold red]")
+    logger.info("Starting polling")
+    asyncio.run(main())
