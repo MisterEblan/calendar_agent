@@ -1,0 +1,23 @@
+services:
+  telegram_bot:
+    build:
+      context: .
+    image: agent_telegram_bot:latest
+    container_name: telegram_bot
+    depends_on:
+      - ollama
+    volumes:
+      - ./credentials.json:/app/credentials.json
+      - ./token.json:/app/token.json
+      - ./config/model_params.yaml:/app/config/model_params.yaml
+  ollama:
+    image: ollama/ollama
+    container_name: ollama
+    volumes:
+      - ollama:/root/.ollama
+      - ./entrypoint_ollama.sh:/entrypoint.sh
+    entrypoint: ["/bin/bash", "/entrypoint.sh"]
+    ports:
+      - "11434:11434"
+volumes:
+  ollama:
