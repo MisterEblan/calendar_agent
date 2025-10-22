@@ -1,5 +1,7 @@
+from google.auth.credentials import Credentials
 from langchain.agents import tool
 from langchain_core.tools import BaseTool
+from langchain_google_community.calendar.utils import get_google_credentials
 
 from ...db import (
     engine,
@@ -10,7 +12,7 @@ from ...db import (
     SqliteService
 )
 from ...helpers.context_builder import ContextBuilder
-
+from ...auth.google_auth_service import GoogleAuthService
 
 def create_user_tools(user_id: int) -> list[BaseTool]:
 
@@ -143,3 +145,9 @@ def create_user_tools(user_id: int) -> list[BaseTool]:
         decrement_skips,
         create_subject
     ]
+
+async def create_calendar_tools(user_id):
+    service = SqliteService(engine)
+
+    token = await service.get_user_token(user_id)
+    pass
