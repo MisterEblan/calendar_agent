@@ -15,7 +15,7 @@ class GoogleAuthService:
             'https://www.googleapis.com/auth/calendar.events'
         ]
         
-        self.CLIENT_SECRETS_FILE = 'credentials_web.json'
+        self.CLIENT_SECRETS_FILE = 'credentials.json'
         
         self.REDIRECT_URI = 'urn:ietf:wg:oauth:2.0:oob'
 
@@ -46,11 +46,9 @@ class GoogleAuthService:
             flow = self._create_oauth_flow()
             
             authorization_url, _ = flow.authorization_url(
-                access_type='online',
-                include_granted_scopes='true',
-                prompt='consent',
-                state=user_id,
-                # response_type="code"
+                access_type="offline",
+                include_granted_scopes="true",
+                prompt="consent",
             )
             
             logger.info(f"Generated auth URL for user {user_id}")
@@ -58,4 +56,19 @@ class GoogleAuthService:
             
         except Exception as e:
             logger.error(f"Error generating auth URL for user {user_id}: {e}")
+            raise
+    def exchange_code_for_token(
+        self,
+        code: str,
+        user_id: str
+    ) -> Credentials:
+        try:
+            flow = self._create_oauth_flow()
+            flow.fetch_token(code=code)
+            creds = flow.credentials
+
+            logger.info("Code exchanged")
+            return creds
+        except Exception as err:
+            logger.error("Error exchanging: %s", err)
             raise

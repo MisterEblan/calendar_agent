@@ -29,12 +29,10 @@ toolkit = CalendarToolkit(api_resource=api_resource)
 
 # === Database Tools ===
 
-
 tools = toolkit.get_tools() + db_tools
 
 tools_descriptions = [
     f"{t.name}: {t.description}" for t in tools
 ]
 tools_names = ", ".join(t.name for t in tools)
-
 get_current_datetime = GetCurrentDatetime(api_resource=api_resource)

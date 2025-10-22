@@ -2,13 +2,12 @@
 
 from langchain.memory import ConversationBufferWindowMemory
 from langchain.agents import AgentExecutor, create_tool_calling_agent
+from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core._api import LangChainDeprecationWarning
 from langchain_core.tools import BaseTool
-from langgraph.prebuilt import create_react_agent
 from langchain_ollama import ChatOllama
 
-from .prompts import react_prompt, default_prompt
-from .tools import tools
+from .prompts import prompt_str
 from ..config import models_params
 import warnings
 
@@ -20,17 +19,22 @@ llm = ChatOllama(
     **params,
 )
 
-# === REACT ===
-
-react_agent = create_react_agent(
-    model=llm,
-    tools=tools,
-    prompt=react_prompt,
-)
-
 # === TOOL CALLING ===
 
 def init_tool_calling_agent(tools: list[BaseTool]) -> AgentExecutor:
+
+    tools_descriptions = "\n".join(f"{t.name}: {t.description}" for t in tools)
+    
+    default_prompt = ChatPromptTemplate.from_messages([
+        ("system", prompt_str),
+        MessagesPlaceholder(variable_name="chat_history"),
+        ("human", "{input}"),
+        ("placeholder", "{agent_scratchpad}")
+    ])
+    default_prompt.input_variables = ["input", "agent_scratchpad"]
+    default_prompt.partial_variables = {
+        "tools": tools_descriptions,
+    }
     memory = ConversationBufferWindowMemory(
         memory_key="chat_history",
         output_key="output",

@@ -4,4 +4,4 @@ ollama:
   temperature: 0.1
   reasoning: false
   num_ctx: 10000
-  base_url: 'http://ollama:11434'
+  base_url: 'http://localhost:11434'

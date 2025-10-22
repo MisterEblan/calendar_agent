@@ -39,9 +39,13 @@ def create_user_tools(user_id: int) -> list[BaseTool]:
 
             return ContextBuilder.from_subjects(subjects)
         except SubjectNotFound:
-            return "Нет данных о предметах"
+            msg =  "Нет данных о предметах"
+            logger.error(msg)
+            return msg
         except Exception as err:
-            return f"Ошибка при получении информации: {err}"
+            msg = f"Ошибка при получении информации: {err}"
+            logger.error(msg)
+            return msg
 
     @tool
     async def increment_skips(

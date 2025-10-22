@@ -11,17 +11,6 @@ from .tools import (
 prompt_str = prompts["default"]
 react_prompt_str = prompts["react"]
 
-default_prompt = ChatPromptTemplate.from_messages([
-    ("system", prompt_str),
-    MessagesPlaceholder(variable_name="chat_history"),
-    ("human", "{input}"),
-    ("placeholder", "{agent_scratchpad}")
-])
-default_prompt.input_variables = ["input", "agent_scratchpad"]
-default_prompt.partial_variables = {
-    "tools": tools_descriptions,
-    "current_datetime": get_current_datetime._run(),
-}
 
 react_prompt = ChatPromptTemplate.from_messages([
     ("system", react_prompt_str),

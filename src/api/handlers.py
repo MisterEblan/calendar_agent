@@ -2,9 +2,9 @@ from datetime import datetime
 
 from aiogram import Dispatcher
 from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import StatesGroup
+from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import Message
-from aiogram.filters import Command
+from aiogram.filters import Command, StateFilter
 
 from langchain_core.runnables.schema import StreamEvent
 
@@ -25,7 +25,8 @@ logger = logging.getLogger(__name__)
 agent_manager = AgentManager()
 dp = Dispatcher()
 
-# class AuthStates(StatesGroup):
+class AuthStates(StatesGroup):
+    waiting_code = State()
 
 def is_my_username(username: str) -> bool:
     """Проверка на то, что бот общается со мной
@@ -99,8 +100,34 @@ async def auth_handler(message: Message, state: FSMContext):
     auth_url = auth_service.get_authorization_url(str(db_user.id))
 
     await message.reply(
-        f"Для аутентификации перейдите по ссылке:\n{auth_url}"
+        f"Для аутентификации перейдите по ссылке:\n`{auth_url}`"
     )
+
+    await state.set_state(AuthStates.waiting_code)
+
+@dp.message(StateFilter(AuthStates.waiting_code))
+async def auth_code_handler(message: Message, state: FSMContext):
+    auth_service = GoogleAuthService()
+    db_service = SqliteService(engine)
+
+    db_user = await db_service.get_or_create_user(
+        telegram_id=message.from_user.id,
+        username=message.from_user.username
+    )
+
+    code = message.text.strip()
+    
+    try:
+        token_data = auth_service.exchange_code_for_token(
+            code=code, user_id=str(db_user.id)
+        )
+
+        await db_service.save_user_token(user_id=db_user.id, token_data=token_data.to_json())
+
+        await message.reply("Аутентификация завершена!")
+        await state.clear()
+    except Exception as err:
+        await message.reply(f"Ошибка: {err}")
 
 @dp.message()
 async def message_handler(message: Message) -> None:
@@ -119,7 +146,7 @@ async def message_handler(message: Message) -> None:
         username=user.username
     )
 
-    agent = await agent_manager.create_agent_for_user(user_id=user_id)
+    agent = await agent_manager.create_agent_for_user(user_id=db_user.id)
 
     logger.info("Sending message")
     sent_msg = await message.reply("Ответ:")
