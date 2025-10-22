@@ -1,11 +1,14 @@
+"""Менеджер агентов"""
+
 from langchain.agents import AgentExecutor
 
-from ..ai.tools.utils import create_calendar_tools, create_user_tools
+from ..ai.tools import create_calendar_tools, create_db_tools
 from ..ai.agents import init_tool_calling_agent
 
 import asyncio
 
 class AgentManager:
+    """Менеджер агентов для нескольких пользователей"""
 
     def __init__(self):
         self.user_agents: dict[int, AgentExecutor] = {}
@@ -18,7 +21,7 @@ class AgentManager:
             return self.user_agents[user_id]
 
     async def _create_new_agent(self, user_id: int) -> None:
-        db_tools = create_user_tools(user_id)
+        db_tools = create_db_tools(user_id)
         calendar_tools = await create_calendar_tools(user_id)
 
         tools = db_tools + calendar_tools

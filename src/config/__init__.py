@@ -1,3 +1,5 @@
+"""Конфигурация"""
+
 from .config import prompts, models_params
 from .app_config import app_config
 

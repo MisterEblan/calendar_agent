@@ -114,7 +114,7 @@ class SqliteService:
 
             else:
                 raise SubjectNotFound(f"Не найден предмет {subject_name}")
-            
+
 
     async def decrement_skips(
         self,
@@ -218,7 +218,7 @@ class SqliteService:
             stmt = select(Subject).where(Subject.user_id == user_id)
 
             result = await session.execute(stmt)
-            
+
             subjects = result.scalars().all()
 
             if not subjects:

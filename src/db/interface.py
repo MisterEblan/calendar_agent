@@ -6,7 +6,11 @@ from .models import Subject, SubjectCriticality
 class AsyncDatabaseService(Protocol):
     """Интерфейс сервиса базы данных"""
 
-    async def increment_skips(self, subject_name: str, count: int = 1) -> Subject:
+    async def increment_skips(
+            self,
+            subject_name: str,
+            count: int = 1
+    ) -> Subject:
         """Увеличивает количество пропусков предмета
 
         Args:
@@ -17,7 +21,11 @@ class AsyncDatabaseService(Protocol):
             только обновляет данные в БД.
         """
 
-    async def decrement_skips(self, subject_name: str, count: int = 1) -> Subject:
+    async def decrement_skips(
+            self,
+            subject_name: str,
+            count: int = 1
+    ) -> Subject:
         """Уменьшает количество пропусков предмета
 
         Args:

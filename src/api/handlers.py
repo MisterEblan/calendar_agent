@@ -1,3 +1,5 @@
+"""Обработчики телеграм-бота"""
+
 from datetime import datetime
 
 from aiogram import Dispatcher
@@ -69,7 +71,8 @@ def get_chunk(event: StreamEvent) -> str | None:
 async def help_command_handler(message: Message) -> None:
     logger.info("Help command triggered")
 
-    msg = """Данный бот является ИИ-агентом для помощи в составлении расписания и умеет:
+    msg = """Данный бот является ИИ-агентом для помощи в составлении расписания.
+Умеет:
 1. Получать и изменять мероприятия в Google Calendar (будьте аккуратны).
 2. Работать с базой данных пропусков.
 
@@ -116,17 +119,20 @@ async def auth_code_handler(message: Message, state: FSMContext):
     )
 
     code = message.text.strip()
-    
+
     try:
         token_data = auth_service.exchange_code_for_token(
             code=code, user_id=str(db_user.id)
         )
 
-        await db_service.save_user_token(user_id=db_user.id, token_data=token_data.to_json())
+        await db_service.save_user_token(
+            user_id=db_user.id,
+            token_data=token_data.to_json()
+        )
 
         await message.reply("Аутентификация завершена!")
         await state.clear()
-    except Exception as err:
+    except Exception as err: # pylint: disable=W0718
         await message.reply(f"Ошибка: {err}")
 
 @dp.message()
@@ -155,7 +161,7 @@ async def message_handler(message: Message) -> None:
     full_text = ""
     last_update_time = datetime.now().timestamp()
     update_interval = 0.5
-    
+
     async for event in agent.astream_events(
         {"input": message.md_text}
     ):
@@ -170,8 +176,8 @@ async def message_handler(message: Message) -> None:
             try:
                 await sent_msg.edit_text(full_text)
                 last_update_time = current_time
-            except Exception as err:
+            except Exception as err: # pylint: disable=W0718
                 logger.warning("Exception: %s", err)
                 pass
-                
+
     await sent_msg.edit_text(full_text)

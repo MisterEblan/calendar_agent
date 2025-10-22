@@ -1,3 +1,5 @@
+"""Работа с базой данных"""
+
 from .exceptions import (
         DatabaseException,
         SubjectAlreadyExists,

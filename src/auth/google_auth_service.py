@@ -1,23 +1,23 @@
+"""Сервис для аутентификации Google"""
+
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import Flow
 import logging
 
 logger = logging.getLogger(__name__)
+SCOPES = [
+    'https://www.googleapis.com/auth/calendar',
+    'https://www.googleapis.com/auth/calendar.events'
+]
+CLIENT_SECRETS_FILE = 'credentials.json'
+REDIRECT_URI = 'urn:ietf:wg:oauth:2.0:oob'
 
 class GoogleAuthService:
     """Сервис для аутентификации Google"""
 
     def __init__(self):
         self.credentials_cache: dict[int, Credentials] = {}
-        
-        self.SCOPES = [
-            'https://www.googleapis.com/auth/calendar',
-            'https://www.googleapis.com/auth/calendar.events'
-        ]
-        
-        self.CLIENT_SECRETS_FILE = 'credentials.json'
-        
-        self.REDIRECT_URI = 'urn:ietf:wg:oauth:2.0:oob'
+
 
     def _create_oauth_flow(self) -> Flow:
         """Создаёт флоу
@@ -26,9 +26,9 @@ class GoogleAuthService:
             флоу для дальнейшего создания URL.
         """
         flow = Flow.from_client_secrets_file(
-            self.CLIENT_SECRETS_FILE,
-            scopes=self.SCOPES,
-            redirect_uri=self.REDIRECT_URI,
+            CLIENT_SECRETS_FILE,
+            scopes=SCOPES,
+            redirect_uri=REDIRECT_URI,
         )
 
         return flow
@@ -44,18 +44,24 @@ class GoogleAuthService:
         """
         try:
             flow = self._create_oauth_flow()
-            
+
             authorization_url, _ = flow.authorization_url(
                 access_type="offline",
                 include_granted_scopes="true",
                 prompt="consent",
             )
-            
-            logger.info(f"Generated auth URL for user {user_id}")
+
+            logger.info(
+                "Generated auth URL for user %s",
+                user_id
+            )
             return authorization_url
-            
-        except Exception as e:
-            logger.error(f"Error generating auth URL for user {user_id}: {e}")
+        except Exception as err:
+            logger.error(
+                "Error generating auth URL for user %s: %s",
+                user_id,
+                err
+            )
             raise
     def exchange_code_for_token(
         self,

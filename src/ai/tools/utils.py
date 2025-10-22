@@ -1,4 +1,8 @@
+"""Полезные функции"""
+
 import json
+import logging
+
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from langchain.agents import tool
@@ -18,11 +22,18 @@ from ...db import (
 )
 from ...helpers.context_builder import ContextBuilder
 
-import logging
-
 logger = logging.getLogger(__name__)
 
-def create_user_tools(user_id: int) -> list[BaseTool]:
+def create_db_tools(user_id: int) -> list[BaseTool]:
+    """Создаёт инструменты для работы с базой данных
+
+    Args:
+        user_id: идентификатор пользователя в базе данных.
+
+    Returns:
+        список инструментов для работы
+        с базой данных для агента.
+    """
 
     @tool
     async def get_subjects_skips() -> str:
@@ -30,7 +41,7 @@ def create_user_tools(user_id: int) -> list[BaseTool]:
 
         Returns:
             Строки формата
-            `[Название предмета] ([Критичность предмета]): [Количество пропусков]`
+            `[Название предмета] ([Критичность предмета]): [Количество пропусков]` # pylint: disable=C0301
         """
         service = SqliteService(engine)
 
@@ -42,7 +53,7 @@ def create_user_tools(user_id: int) -> list[BaseTool]:
             msg =  "Нет данных о предметах"
             logger.error(msg)
             return msg
-        except Exception as err:
+        except Exception as err: # pylint: disable=W0718
             msg = f"Ошибка при получении информации: {err}"
             logger.error(msg)
             return msg
@@ -70,14 +81,14 @@ def create_user_tools(user_id: int) -> list[BaseTool]:
                 subject_name=subject_name,
                 count=count
         )
-        
+
             return f"Пропуски для {subject_name} увеличины на {count}"
 
         except SubjectNotFound:
             return f"Не найден предмет {subject_name}"
         except InvalidCount as err:
             return f"Ошибка увеличения: {err}"
-        except Exception:
+        except Exception: # pylint: disable=W0718
             return "Неизвестная ошибка"
 
     @tool
@@ -103,14 +114,14 @@ def create_user_tools(user_id: int) -> list[BaseTool]:
                 subject_name=subject_name,
                 count=count
         )
-        
+
             return f"Пропуски для {subject_name} уменьшены на {count}"
 
         except SubjectNotFound:
             return f"Не найден предмет {subject_name}"
         except InvalidCount as err:
             return f"Ошибка уменьшения: {err}"
-        except Exception:
+        except Exception: # pylint: disable=W0718
             return "Неизвестная ошибка"
 
     @tool
@@ -148,7 +159,7 @@ def create_user_tools(user_id: int) -> list[BaseTool]:
 
         except SubjectAlreadyExists:
             return "Предмет уже существует"
-        except Exception as err:
+        except Exception as err: # pylint: disable=W0718
             return f"Ошибка при получении информации: {err}"
 
     return [
@@ -158,7 +169,18 @@ def create_user_tools(user_id: int) -> list[BaseTool]:
         create_subject
     ]
 
-async def create_calendar_tools(user_id) -> list[BaseTool]:
+async def create_calendar_tools(
+        user_id: int
+) -> list[BaseTool]:
+    """Создаёт инструменты для работы с календарём
+
+    Args:
+        user_id: идентификатор пользователя в базе данных.
+
+    Returns:
+        список инструментов
+        для работы с календарём для агента.
+    """
     service = SqliteService(engine)
 
     token_data = await service.get_user_token(user_id)
@@ -184,7 +206,7 @@ async def create_calendar_tools(user_id) -> list[BaseTool]:
         toolkit = CalendarToolkit(api_resource=api_resource)
 
         return toolkit.get_tools()
-    except Exception as err:
+    except Exception as err: # pylint: disable=W0718
         logger.error(
             "Ошибка при создании инструментов календаря: %s",
             err
