@@ -1,18 +1,31 @@
 from datetime import datetime
 
 from aiogram import Dispatcher
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import StatesGroup
 from aiogram.types import Message
 from aiogram.filters import Command
 
 from langchain_core.runnables.schema import StreamEvent
 
+from ..helpers.agent_manager import AgentManager
+
+from ..auth.google_auth_service import GoogleAuthService
+
+from ..db import (
+    SqliteService,
+    engine
+)
+
 from ..config import app_config
-from ..ai import tool_agent_executor as agent
 
 import logging
 
 logger = logging.getLogger(__name__)
+agent_manager = AgentManager()
 dp = Dispatcher()
+
+# class AuthStates(StatesGroup):
 
 def is_my_username(username: str) -> bool:
     """Проверка на то, что бот общается со мной
@@ -69,19 +82,44 @@ async def help_command_handler(message: Message) -> None:
     await message.reply(msg)
     return
 
+@dp.message(Command("auth"))
+async def auth_handler(message: Message, state: FSMContext):
+    if not (user := message.from_user) or not user.username:
+        logger.warning("Unknown user")
+        await message.reply("Неизвестный пользователь")
+        return
+    db_service = SqliteService(engine)
+    db_user = await db_service.get_or_create_user(
+        telegram_id=user.id,
+        username=user.username
+    )
+
+    auth_service = GoogleAuthService()
+
+    auth_url = auth_service.get_authorization_url(str(db_user.id))
+
+    await message.reply(
+        f"Для аутентификации перейдите по ссылке:\n{auth_url}"
+    )
+
 @dp.message()
 async def message_handler(message: Message) -> None:
     """Обработчик всех сообщений"""
     logger.info("Received a message")
-    if not (user := message.from_user):
+    if not (user := message.from_user) or not user.username:
         logger.warning("Unknown user")
         await message.reply("Неизвестный пользователь")
         return
 
-    if not user.username or not is_my_username(user.username):
-        logger.warning("Unknown user")
-        await message.reply("Незвестный пользователь")
-        return
+    db_service = SqliteService(engine)
+    user_id = user.id
+
+    db_user = await db_service.get_or_create_user(
+        telegram_id=user_id,
+        username=user.username
+    )
+
+    agent = await agent_manager.create_agent_for_user(user_id=user_id)
 
     logger.info("Sending message")
     sent_msg = await message.reply("Ответ:")
@@ -90,6 +128,7 @@ async def message_handler(message: Message) -> None:
     full_text = ""
     last_update_time = datetime.now().timestamp()
     update_interval = 0.5
+    
     async for event in agent.astream_events(
         {"input": message.md_text}
     ):
@@ -104,8 +143,8 @@ async def message_handler(message: Message) -> None:
             try:
                 await sent_msg.edit_text(full_text)
                 last_update_time = current_time
-
             except Exception as err:
                 logger.warning("Exception: %s", err)
                 pass
+                
     await sent_msg.edit_text(full_text)

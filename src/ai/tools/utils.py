@@ -1,7 +1,12 @@
-from google.auth.credentials import Credentials
+import json
+from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
 from langchain.agents import tool
 from langchain_core.tools import BaseTool
-from langchain_google_community.calendar.utils import get_google_credentials
+from langchain_google_community import CalendarToolkit
+from langchain_google_community.calendar.utils import (
+    build_calendar_service,
+)
 
 from ...db import (
     engine,
@@ -12,7 +17,10 @@ from ...db import (
     SqliteService
 )
 from ...helpers.context_builder import ContextBuilder
-from ...auth.google_auth_service import GoogleAuthService
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 def create_user_tools(user_id: int) -> list[BaseTool]:
 
@@ -146,8 +154,35 @@ def create_user_tools(user_id: int) -> list[BaseTool]:
         create_subject
     ]
 
-async def create_calendar_tools(user_id):
+async def create_calendar_tools(user_id) -> list[BaseTool]:
     service = SqliteService(engine)
 
-    token = await service.get_user_token(user_id)
-    pass
+    token_data = await service.get_user_token(user_id)
+
+    if not token_data:
+        return []
+
+    try:
+        creds = Credentials.from_authorized_user_info(
+            json.loads(token_data),
+        scopes=[
+            "https://www.googleapis.com/auth/calendar",
+            "https://www.googleapis.com/auth/calendar.events"
+        ]
+    )
+
+        if creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+
+            await service.save_user_token(user_id, creds.to_json())
+
+        api_resource = build_calendar_service(creds)
+        toolkit = CalendarToolkit(api_resource=api_resource)
+
+        return toolkit.get_tools()
+    except Exception as err:
+        logger.error(
+            "Ошибка при создании инструментов календаря: %s",
+            err
+        )
+        return []
