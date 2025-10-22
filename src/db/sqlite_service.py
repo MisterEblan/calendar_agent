@@ -30,6 +30,16 @@ class SqliteService:
         telegram_id: int,
         username: str
     ) -> User:
+        """Находит пользователя в базе данных
+        или создаёт, если он отсутствует
+
+        Args:
+            telegram_id: идентификатор в Telegram.
+            username: имя пользователя в Telegram.
+
+        Returns:
+            пользователь из базы данных.
+        """
         async with self.session_factory() as session:
             stmt = select(User).where(User.telegram_id == telegram_id)
             result = await session.execute(stmt)
@@ -53,6 +63,16 @@ class SqliteService:
         user_id: int,
         token_data: str
     ) -> None:
+        """Сохраняет токен пользователя,
+        предварительно удалив старый
+
+        Args:
+            user_id: идентификатор пользователя в базе данных.
+            token_data: json-строка с токеном.
+
+        Returns:
+            только сохраняет в базу.
+        """
         async with self.session_factory() as session:
             stmt = delete(UserToken).where(UserToken.user_id == user_id)
             await session.execute(stmt)
@@ -68,6 +88,15 @@ class SqliteService:
         self,
         user_id: int
     ) -> str | None:
+        """Получает токен пользователя
+
+        Args:
+            user_id: идентификатор пользователя в базе данных.
+
+        Returns:
+            возвращает json-строку с токеном или ничего,
+            если не найден в базе данных.
+        """
         async with self.session_factory() as session:
             stmt = select(UserToken).where(UserToken.user_id == user_id)
             result = await session.execute(stmt)
@@ -84,11 +113,16 @@ class SqliteService:
         """Увеличивает количество пропусков предмета
 
         Args:
+            user_id: идентификатор пользователя в базе данных.
             subject_name: имя предмета.
             count: количество пропусков, на которое надо увеличить.
 
         Returns:
             только обновляет данные в БД.
+
+        Raises:
+            SubjectNotFound: предмет не найден в базе данных.
+            InvalidCount: передано неверное значение count.
         """
 
         if count <= 0:
@@ -125,11 +159,15 @@ class SqliteService:
         """Уменьшает количество пропусков предмета
 
         Args:
+            user_id: идентификатор пользователя в базе данных.
             subject_name: имя предмета.
             count: количество пропусков, на которое надо уменьшить.
 
         Returns:
             только обновляет данные в БД.
+
+        Raises:
+            InvalidCount: передано неверное значение count.
         """
         if count <= 0:
             raise InvalidCount(f"Невозможно уменьшить пропуски на {count}")
@@ -165,11 +203,16 @@ class SqliteService:
         """Создаёт в базе новый предмет, устанавливает количество пропусков
 
         Args:
+            user_id: идентификатор пользователя в базе данных.
             subject_name: название предмета.
             skips: изначальное количество пропусков.
 
         Returns:
-            только создаёт запись в БД."""
+            только создаёт запись в БД.
+
+        Raises:
+            InvalidCount: передано неверное значение count.
+        """
 
         if skips < 0:
             raise InvalidCount(
