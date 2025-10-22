@@ -1,10 +1,14 @@
 """БД сервис на SQLite"""
 
-from sqlalchemy import select
+from sqlalchemy import delete, select, and_
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
-from .models import Subject, SubjectCriticality
+from .models import Subject, SubjectCriticality, User, UserToken
 from .exceptions import InvalidCount, SubjectAlreadyExists, SubjectNotFound
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class SqliteService:
@@ -21,8 +25,59 @@ class SqliteService:
             expire_on_commit=False
         )
 
+    async def get_or_create_user(
+        self,
+        telegram_id: int,
+        username: str
+    ) -> User:
+        async with self.session_factory() as session:
+            stmt = select(User).where(User.telegram_id == telegram_id)
+            result = await session.execute(stmt)
+            user = result.scalar_one_or_none()
+
+            if not user:
+                logger.info("Пользователь %s не найден", username)
+                user = User(
+                    telegram_id=telegram_id,
+                    username=username
+                )
+                session.add(user)
+
+                await session.commit()
+                await session.refresh(user)
+
+            return user
+
+    async def save_user_token(
+        self,
+        user_id: int,
+        token_data: str
+    ) -> None:
+        async with self.session_factory() as session:
+            stmt = delete(UserToken).where(UserToken.user_id == user_id)
+            await session.execute(stmt)
+
+            user_token = UserToken(
+                user_id=user_id,
+                token_data=token_data
+            )
+            session.add(user_token)
+            await session.commit()
+
+    async def get_user_token(
+        self,
+        user_id: int
+    ) -> str | None:
+        async with self.session_factory() as session:
+            stmt = select(UserToken).where(UserToken.user_id == user_id)
+            result = await session.execute(stmt)
+            user_token = result.scalar_one_or_none()
+
+            return user_token.token_data if user_token else None
+
     async def increment_skips(
         self,
+        user_id: int,
         subject_name: str,
         count: int = 1
     ) -> Subject:
@@ -40,7 +95,12 @@ class SqliteService:
             raise InvalidCount(f"Невозможно увеличить пропуски на {count}")
 
         async with self.session_factory() as session:
-            stmt = select(Subject).where(Subject.name == subject_name)
+            stmt = select(Subject).where(
+                and_(
+                    Subject.name == subject_name,
+                    Subject.user_id == user_id
+                )
+            )
             result = await session.execute(stmt)
             subject = result.scalar_one_or_none()
 
@@ -56,7 +116,12 @@ class SqliteService:
                 raise SubjectNotFound(f"Не найден предмет {subject_name}")
             
 
-    async def decrement_skips(self, subject_name: str, count: int = 1) -> Subject:
+    async def decrement_skips(
+        self,
+        user_id: int,
+        subject_name: str,
+        count: int = 1
+    ) -> Subject:
         """Уменьшает количество пропусков предмета
 
         Args:
@@ -70,7 +135,12 @@ class SqliteService:
             raise InvalidCount(f"Невозможно уменьшить пропуски на {count}")
 
         async with self.session_factory() as session:
-            stmt = select(Subject).where(Subject.name == subject_name)
+            stmt = select(Subject).where(
+                and_(
+                    Subject.name == subject_name,
+                    Subject.user_id == user_id
+                )
+            )
             result = await session.execute(stmt)
             subject = result.scalar_one_or_none()
 
@@ -87,6 +157,7 @@ class SqliteService:
 
     async def add_subject(
             self,
+            user_id: int,
             subject_name: str,
             skips: int = 0,
             criticality: SubjectCriticality = SubjectCriticality.MEDIUM
@@ -106,7 +177,12 @@ class SqliteService:
             )
 
         async with self.session_factory() as session:
-            stmt = select(Subject).where(Subject.name == subject_name)
+            stmt = select(Subject).where(
+                and_(
+                    Subject.name == subject_name,
+                    Subject.user_id == user_id
+                )
+            )
             result = await session.execute(stmt)
             subject = result.scalar_one_or_none()
 
@@ -116,6 +192,7 @@ class SqliteService:
                 )
 
             new_subject = Subject(
+                user_id=user_id,
                 name=subject_name,
                 skips=skips,
                 criticality=criticality
@@ -127,15 +204,18 @@ class SqliteService:
 
             return new_subject
 
-    async def get_all(self) -> list[Subject]:
+    async def get_all(self, user_id: int) -> list[Subject]:
         """Возвращает все предметы из БД
+
+        Args:
+            user_id: идентификатор пользователя в базе данных.
 
         Returns:
             список всех предметов в базе данных.
         """
 
         async with self.session_factory() as session:
-            stmt = select(Subject)
+            stmt = select(Subject).where(Subject.user_id == user_id)
 
             result = await session.execute(stmt)
             
