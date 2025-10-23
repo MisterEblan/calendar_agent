@@ -7,8 +7,7 @@ from langchain_core._api import LangChainDeprecationWarning
 from langchain_core.tools import BaseTool
 from langchain_ollama import ChatOllama
 
-from .prompts import prompt_str
-from ..config import models_params
+from ..config import models_params, prompts
 import warnings
 
 warnings.filterwarnings("ignore", category=LangChainDeprecationWarning)
@@ -34,7 +33,7 @@ def init_tool_calling_agent(tools: list[BaseTool]) -> AgentExecutor:
     tools_descriptions = "\n".join(f"{t.name}: {t.description}" for t in tools)
 
     default_prompt = ChatPromptTemplate.from_messages([
-        ("system", prompt_str),
+        ("system", prompts["default"]),
         MessagesPlaceholder(variable_name="chat_history"),
         ("human", "{input}"),
         ("placeholder", "{agent_scratchpad}")

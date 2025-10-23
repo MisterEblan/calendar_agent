@@ -8,8 +8,8 @@ services:
       - ollama
     volumes:
       - ./credentials.json:/app/credentials.json
-      - ./token.json:/app/token.json
       - ./config/model_params.yaml:/app/config/model_params.yaml
+      - ./subjects.db:/app/subjects.db
   ollama:
     image: ollama/ollama
     container_name: ollama

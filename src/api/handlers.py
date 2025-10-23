@@ -69,12 +69,19 @@ def get_chunk(event: StreamEvent) -> str | None:
 
 @dp.message(Command("help"))
 async def help_command_handler(message: Message) -> None:
+    """Обработчики команды /help
+
+    Присылает информацию по работе с ботом.
+    """
     logger.info("Help command triggered")
 
     msg = """Данный бот является ИИ-агентом для помощи в составлении расписания.
 Умеет:
 1. Получать и изменять мероприятия в Google Calendar (будьте аккуратны).
 2. Работать с базой данных пропусков.
+
+**Перед использованием необходимо аутентифицироваться с помощью /auth**.
+Иначе, не будут доступны действия с календарём.
 
 В базе данных есть сущность Subject, которая представляется полями:
 - `name` - название предмета.
@@ -88,6 +95,11 @@ async def help_command_handler(message: Message) -> None:
 
 @dp.message(Command("auth"))
 async def auth_handler(message: Message, state: FSMContext):
+    """Обработчик команды /auth
+
+    Создаёт пользователя в базе данных и присылает
+    ссылку для аутентификации.
+    """
     if not (user := message.from_user) or not user.username:
         logger.warning("Unknown user")
         await message.reply("Неизвестный пользователь")
@@ -102,20 +114,38 @@ async def auth_handler(message: Message, state: FSMContext):
 
     auth_url = auth_service.get_authorization_url(str(db_user.id))
 
+    msg = (
+        "Для аутентификации перейдите по ссылке и отправьте код, "
+        f"полученный от Google:\n{auth_url}"
+    )
+
     await message.reply(
-        f"Для аутентификации перейдите по ссылке:\n`{auth_url}`"
+        "".join(msg), parse_mode=None
     )
 
     await state.set_state(AuthStates.waiting_code)
 
 @dp.message(StateFilter(AuthStates.waiting_code))
-async def auth_code_handler(message: Message, state: FSMContext):
+async def auth_code_handler(message: Message, state: FSMContext) -> None:
+    """Обработчик получения кода
+
+    Смотрит на состояние бота и принимает код из OAuth2.0,
+    который обменивается на токен.
+    """
+    if not (user := message.from_user) or not user.username:
+        logger.warning("Unknown user")
+        await message.reply("Неизвестный пользователь")
+        return
+    if not message.text:
+        message.reply("Не найден код в сообщении!")
+        return
+
     auth_service = GoogleAuthService()
     db_service = SqliteService(engine)
 
     db_user = await db_service.get_or_create_user(
         telegram_id=message.from_user.id,
-        username=message.from_user.username
+        username=user.username
     )
 
     code = message.text.strip()
@@ -137,7 +167,11 @@ async def auth_code_handler(message: Message, state: FSMContext):
 
 @dp.message()
 async def message_handler(message: Message) -> None:
-    """Обработчик всех сообщений"""
+    """Обработчик всех сообщений
+
+    Для каждого пользователя создаётся свой агент
+    для работы с разными календарями.
+    """
     logger.info("Received a message")
     if not (user := message.from_user) or not user.username:
         logger.warning("Unknown user")
