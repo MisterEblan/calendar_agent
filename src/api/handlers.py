@@ -80,7 +80,7 @@ async def help_command_handler(message: Message) -> None:
 1. Получать и изменять мероприятия в Google Calendar (будьте аккуратны).
 2. Работать с базой данных пропусков.
 
-**Перед использованием необходимо аутентифицироваться с помощью /auth**.
+*Перед использованием необходимо аутентифицироваться с помощью* /auth.
 Иначе, не будут доступны действия с календарём.
 
 В базе данных есть сущность Subject, которая представляется полями:
@@ -90,7 +90,7 @@ async def help_command_handler(message: Message) -> None:
 
 Вы можете попросить агента добавить предмет, прибавить или убавить пропуски. 
 """
-    await message.reply(msg)
+    await message.reply(msg, parse_mode="Markdown")
     return
 
 @dp.message(Command("auth"))
