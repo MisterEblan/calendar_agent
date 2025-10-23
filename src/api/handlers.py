@@ -8,18 +8,14 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import Message
 from aiogram.filters import Command, StateFilter
 
-from langchain_core.runnables.schema import StreamEvent
 
-from ..helpers.agent_manager import AgentManager
-
+from ..helpers import AgentManager, get_chunk
 from ..auth.google_auth_service import GoogleAuthService
-
+from ..config import sample_messages 
 from ..db import (
     SqliteService,
     engine
 )
-
-from ..config import app_config
 
 import logging
 
@@ -30,43 +26,6 @@ dp = Dispatcher()
 class AuthStates(StatesGroup):
     waiting_code = State()
 
-def is_my_username(username: str) -> bool:
-    """Проверка на то, что бот общается со мной
-
-    Args:
-        username: имя пользователя, которое нужно проверить.
-
-    Returns:
-        Мой ли это username.
-    """
-    return username == app_config.my_username
-
-def get_chunk(event: StreamEvent) -> str | None:
-    """Получает из события определённый чанк
-
-    Args:
-        event: событие стрима агента.
-
-    Returns:
-        определённый чанк текста, исходя из типа события
-        или ничего.
-    """
-    if event["event"] == "on_chat_model_stream":
-        return event["data"]["chunk"].content
-    elif event["event"] == "on_tool_start":
-        name = event["name"]
-
-        logger.info("Agent Calling %s", name)
-        logger.info("Input: %s", event["data"]["input"])
-
-        return f"`<Вызов {name}>`"
-    elif event["event"] == "on_tool_end":
-        name = event["name"]
-
-        logger.info("Called ended for %s", name)
-
-        return f"\n`<Вызов {name} завершён>`\n"
-
 @dp.message(Command("help"))
 async def help_command_handler(message: Message) -> None:
     """Обработчики команды /help
@@ -75,21 +34,7 @@ async def help_command_handler(message: Message) -> None:
     """
     logger.info("Help command triggered")
 
-    msg = """Данный бот является ИИ-агентом для помощи в составлении расписания.
-Умеет:
-1. Получать и изменять мероприятия в Google Calendar (будьте аккуратны).
-2. Работать с базой данных пропусков.
-
-*Перед использованием необходимо аутентифицироваться с помощью* /auth.
-Иначе, не будут доступны действия с календарём.
-
-В базе данных есть сущность Subject, которая представляется полями:
-- `name` - название предмета.
-- `skips` - количество пропусков.
-- `criticality` - критичность предмета: низкая, средняя или высокая.
-
-Вы можете попросить агента добавить предмет, прибавить или убавить пропуски. 
-"""
+    msg = sample_messages["help"]
     await message.reply(msg, parse_mode="Markdown")
     return
 
@@ -105,25 +50,33 @@ async def auth_handler(message: Message, state: FSMContext):
         await message.reply("Неизвестный пользователь")
         return
     db_service = SqliteService(engine)
-    db_user = await db_service.get_or_create_user(
-        telegram_id=user.id,
-        username=user.username
-    )
 
-    auth_service = GoogleAuthService()
+    try:
+        db_user = await db_service.get_or_create_user(
+            telegram_id=user.id,
+            username=user.username
+        )
 
-    auth_url = auth_service.get_authorization_url(str(db_user.id))
+        auth_service = GoogleAuthService()
 
-    msg = (
-        "Для аутентификации перейдите по ссылке и отправьте код, "
-        f"полученный от Google:\n{auth_url}"
-    )
+        auth_url = auth_service.get_authorization_url(str(db_user.id))
 
-    await message.reply(
-        "".join(msg), parse_mode=None
-    )
+        msg = (
+            "Для аутентификации перейдите по ссылке и отправьте код, "
+            f"полученный от Google:\n{auth_url}"
+        )
 
-    await state.set_state(AuthStates.waiting_code)
+        await message.reply(
+            "".join(msg), parse_mode=None
+        )
+
+        await state.set_state(AuthStates.waiting_code)
+    except Exception as err: # pylint: disable=W0718
+        logger.error("Authorization error: %s", err)
+        await message.reply(
+            "*Произошла ошибка при обработке сообщения*",
+            parse_mode="Markdown"
+        )
 
 @dp.message(StateFilter(AuthStates.waiting_code))
 async def auth_code_handler(message: Message, state: FSMContext) -> None:

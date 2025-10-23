@@ -15,12 +15,28 @@ class AgentManager:
         self.lock = asyncio.Lock()
 
     async def create_agent_for_user(self, user_id: int) -> AgentExecutor:
+        """Создаёт для пользователя отдельного агента
+
+        Args:
+            user_id: идентификатор пользователя в базе данных.
+
+        Returns:
+            агент с отдельными инструментами для пользователя.
+        """
         async with self.lock:
             if user_id not in self.user_agents:
                 await self._create_new_agent(user_id)
             return self.user_agents[user_id]
 
     async def _create_new_agent(self, user_id: int) -> None:
+        """Создание нового агента и сохранение в память класса
+
+        Args:
+            user_id: идентификатор пользователя в базе данных.
+
+        Returns:
+            Ничего не возвращает, сохраняет агента в память класса.
+        """
         db_tools = create_db_tools(user_id)
         calendar_tools = await create_calendar_tools(user_id)
 
@@ -30,4 +46,4 @@ class AgentManager:
 
         self.user_agents[user_id] = agent
 
-
+        logger.info("Created agent for user (%s)", user_id)

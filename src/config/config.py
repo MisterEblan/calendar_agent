@@ -24,5 +24,6 @@ def load_yaml_config(config_path: str) -> dict[str, Any]:
         raise RuntimeError(f"Файл конфигурации {config_path} не найден") \
             from err
 
-prompts = load_yaml_config("config/prompts.yaml")["prompts"]
-models_params = load_yaml_config("config/model_params.yaml")
+prompts         = load_yaml_config("config/prompts.yaml")["prompts"]
+models_params   = load_yaml_config("config/model_params.yaml")
+sample_messages = load_yaml_config("config/sample_messages.yaml")
