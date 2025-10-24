@@ -6,6 +6,9 @@ from ..ai.tools import create_calendar_tools, create_db_tools
 from ..ai.agents import init_tool_calling_agent
 
 import asyncio
+import logging
+
+logger = logging.getLogger(__name__)
 
 class AgentManager:
     """Менеджер агентов для нескольких пользователей"""
