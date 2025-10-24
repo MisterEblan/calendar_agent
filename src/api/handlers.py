@@ -26,6 +26,17 @@ dp = Dispatcher()
 class AuthStates(StatesGroup):
     waiting_code = State()
 
+@dp.message(Command("start"))
+async def start_command_handler(message: Message) -> None:
+    """Обработчик команды /start"""
+
+    logger.info("Start command triggered")
+    msg = sample_messages["start"]
+
+    await message.reply(
+        msg, parse_mode="Markdown"
+    )
+
 @dp.message(Command("help"))
 async def help_command_handler(message: Message) -> None:
     """Обработчики команды /help
