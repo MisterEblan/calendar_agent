@@ -17,16 +17,24 @@ class AgentManager:
         self.user_agents: dict[int, AgentExecutor] = {}
         self.lock = asyncio.Lock()
 
-    async def create_agent_for_user(self, user_id: int) -> AgentExecutor:
+    async def create_agent_for_user(
+        self,
+        user_id: int,
+        force: bool = False
+    ) -> AgentExecutor:
         """Создаёт для пользователя отдельного агента
 
         Args:
             user_id: идентификатор пользователя в базе данных.
+            force: принудительное пересоздание.
 
         Returns:
             агент с отдельными инструментами для пользователя.
         """
         async with self.lock:
+            if force:
+                await self._create_new_agent(user_id)
+                return self.user_agents[user_id]
             if user_id not in self.user_agents:
                 await self._create_new_agent(user_id)
             return self.user_agents[user_id]

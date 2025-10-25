@@ -129,6 +129,34 @@ async def auth_code_handler(message: Message, state: FSMContext) -> None:
     except Exception as err: # pylint: disable=W0718
         await message.reply(f"Ошибка: {err}")
 
+@dp.message(Command("refresh"))
+async def refresh_command_handler(message: Message) -> None:
+    """Пересоздание агента"""
+    if not (user := message.from_user) or not user.username:
+        logger.warning("Unknown user")
+        await message.reply("Неизвестный пользователь")
+        return
+
+    try:
+        db_service = SqliteService(engine)
+        user_id = user.id
+
+        db_user = await db_service.get_or_create_user(
+            telegram_id=user_id,
+            username=user.username
+        )
+
+        await agent_manager.create_agent_for_user(
+            user_id=db_user.id,
+            force=True
+        )
+        logger.info("Agent recreated")
+
+        await message.reply("Агент был пересоздан")
+    except Exception as err: # pylint: disable=W0718
+        logger.error("Error with recreating agent: %s", err)
+        message.reply("Произошла ошибка")
+
 @dp.message()
 async def message_handler(message: Message) -> None:
     """Обработчик всех сообщений
@@ -142,40 +170,46 @@ async def message_handler(message: Message) -> None:
         await message.reply("Неизвестный пользователь")
         return
 
-    db_service = SqliteService(engine)
-    user_id = user.id
+    try:
+        db_service = SqliteService(engine)
+        user_id = user.id
 
-    db_user = await db_service.get_or_create_user(
-        telegram_id=user_id,
-        username=user.username
-    )
+        db_user = await db_service.get_or_create_user(
+            telegram_id=user_id,
+            username=user.username
+        )
 
-    agent = await agent_manager.create_agent_for_user(user_id=db_user.id)
+        agent = await agent_manager.create_agent_for_user(
+            user_id=db_user.id
+        )
 
-    logger.info("Sending message")
-    sent_msg = await message.reply("Ответ:")
+        logger.info("Sending message")
+        sent_msg = await message.reply("Ответ:")
 
-    logger.info("Invoking Agent")
-    full_text = ""
-    last_update_time = datetime.now().timestamp()
-    update_interval = 0.5
+        logger.info("Invoking Agent")
+        full_text = ""
+        last_update_time = datetime.now().timestamp()
+        update_interval = 0.5
 
-    async for event in agent.astream_events(
-        {"input": message.md_text}
-    ):
-        chunk = get_chunk(event)
-        if not chunk:
-            continue
+        async for event in agent.astream_events(
+            {"input": message.md_text}
+        ):
+            chunk = get_chunk(event)
+            if not chunk:
+                continue
 
-        full_text += chunk
+            full_text += chunk
 
-        current_time = datetime.now().timestamp()
-        if current_time - last_update_time >= update_interval:
-            try:
-                await sent_msg.edit_text(full_text)
-                last_update_time = current_time
-            except Exception as err: # pylint: disable=W0718
-                logger.warning("Exception: %s", err)
-                pass
+            current_time = datetime.now().timestamp()
+            if current_time - last_update_time >= update_interval:
+                try:
+                    await sent_msg.edit_text(full_text)
+                    last_update_time = current_time
+                except Exception as err: # pylint: disable=W0718
+                    logger.warning("Exception: %s", err)
+                    pass
 
-    await sent_msg.edit_text(full_text)
+        await sent_msg.edit_text(full_text)
+    except Exception as err: # pylint: disable=W0718
+        logger.error("Exception: %s", err)
+        message.reply("Произошла ошибка")
