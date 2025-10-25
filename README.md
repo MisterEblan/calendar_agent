@@ -48,3 +48,7 @@ DATABASE_URL=sqlite+aiosqlite:///subjects.db
 1. `credentials.json`.
 2. `model_params.yaml`. Настройки модели. В этом конфиге вы можете выбрать нужную модель и параметры.
 3. `subjects.db`. Файл с базой данных.
+
+# TODO
+
+- Тесты.
